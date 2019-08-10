@@ -1,0 +1,114 @@
+1. npm init
+2. npm install express --save
+3. npm install body-parser --save
+4. npm install mssql --save
+5. npm install
+6. enable sql server configuration manager. click sql server network configuration. set tcp/ip to true
+7. go to protocols for sqlepress. click on tcpip. go to ipall set dynamic ports not to 0, but as nothing. set tcp/ip port to 1433
+8. make sure sql browser is running in msql server configuration
+9. add this file as server .js
+//Initiallising node modules
+var express = require("express");
+var bodyParser = require("body-parser");
+var sql = require("mssql");
+var app = express(); 
+
+// Body Parser Middleware
+app.use(bodyParser.json()); 
+
+//CORS Middleware
+app.use(function (req, res, next) {
+    //Enabling CORS 
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, contentType,Content-Type, Accept, Authorization");
+    next();
+});
+
+var sql = require("mssql");
+var config = {
+    user: 'testusername',
+    password: 'passwordtest',
+    server: 'localhost',
+    database: 'TestDB',
+    port: 1433,
+    options: {
+        truestedConnection: true,
+        instanceName: 'SQLEXPRESS'
+   }
+  
+};
+
+var connect = function()
+{
+    
+    
+    var conn = new sql.ConnectionPool(config);
+    return conn;
+};
+
+//Setting up server
+ var server = app.listen(process.env.PORT || 9000, function () {
+    var port = server.address().port;
+    console.log("App now running on port", port);
+ });
+
+
+
+//Function to connect to database and execute query
+var  executeQuery = function(res, query){   
+    console.log(query);
+    var conn = new sql.ConnectionPool(config);
+    conn.connect().then(function () {
+        var request = new sql.Request(conn);
+        request.query(query).then(function (recordSet) {
+            console.log(recordSet['recordset']);
+            res.send(recordSet['recordset']);
+            conn.close();
+        }).catch(function (err) {
+            console.log(err);
+            conn.close();
+        });
+    }).catch(function (err) {
+        console.log(err);
+    });  
+};
+
+//GET API
+app.get("/api/user/:id", function(req , res){
+    console.log("/api/user/:id called");
+                var query = "select * from [users]"+"  WHERE Id= " + req.params.id;
+                executeQuery (res, query);
+});
+
+//GET API
+app.get("/api/user", function(req , res){
+    console.log("/api/user called");
+                var query = "select * from [users]";
+                executeQuery (res, query);
+});
+
+//POST API
+ app.post("/api/user", function(req , res){
+                console.log(req);
+                console.log(req.body.username);
+                console.log(req.body.password);
+                var query = "INSERT INTO [users] (username, password) VALUES ('"+req.body.username+"','"+req.body.password+"')";
+                executeQuery (res, query);
+});
+
+//PUT API
+ app.put("/api/user/:id", function(req , res){
+
+                console.log(req.body.username);
+                console.log(req.body.password);
+                var query = "UPDATE [users] SET username= '" + req.body.username  +  "' , password=  '" + req.body.password + "'  WHERE Id= " + req.params.id;
+                executeQuery (res, query);
+});
+
+// DELETE API
+ app.delete("/api/user/:id", function(req , res){
+                var query = "DELETE FROM [users] WHERE Id='" + req.params.id+"'";
+                console.log(query);
+                executeQuery (res, query);
+});
